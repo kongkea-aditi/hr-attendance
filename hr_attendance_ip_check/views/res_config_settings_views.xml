@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_ip_attendance" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.ip.attendance</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="hr_attendance.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@data-key='hr_attendance']" position="inside">
+                <h2>IP Attendance Check</h2>
+                <div class="row mt16 o_settings_container" name="ip_attendance_setting_container">
+                    <div class="col-12 col-lg-6 o_setting_box">
+                        <div class="o_setting_left_pane">
+                            <field name="ip_check_enabled"/>
+                        </div>
+                        <div class="o_setting_right_pane">
+                            <label for="ip_check_enabled"/>
+                            <div class="text-muted">
+                                Enable IP address validation for attendance check-in/check-out
+                            </div>
+                            <div class="content-group" attrs="{'invisible': [('ip_check_enabled', '=', False)]}">
+                                <div class="mt16">
+                                    <label for="whitelist_ips" class="o_light_label"/>
+                                    <field name="whitelist_ips" placeholder="e.g. 192.168.1.1, 10.0.0.1"/>
+                                </div>
+                                <div class="text-muted">
+                                    Enter comma-separated IP addresses permitted for check-in/check-out
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
