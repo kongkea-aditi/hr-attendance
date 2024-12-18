@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Multi-company rule -->
+    <record id="work_location_cidr_company_rule" model="ir.rule">
+        <field name="name">Work Location CIDR: Multi-company</field>
+        <field name="model_id" ref="model_hr_work_location_cidr"/>
+        <field name="domain_force">['|', '|', ('company_id', '=', False), ('company_id', 'in', company_ids), ('company_id', '=', user.company_id.id)]</field>
+        <field name="global" eval="True"/>
+    </record>
+
+    <!-- HR Manager full access rule -->
+    <record id="work_location_cidr_manager_rule" model="ir.rule">
+        <field name="name">Work Location CIDR: HR Manager Only</field>
+        <field name="model_id" ref="model_hr_work_location_cidr"/>
+        <field name="groups" eval="[(4, ref('hr.group_hr_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- HR User restriction rule -->
+    <record id="work_location_cidr_user_rule" model="ir.rule">
+        <field name="name">Work Location CIDR: HR User Restriction</field>
+        <field name="model_id" ref="model_hr_work_location_cidr"/>
+        <field name="groups" eval="[(4, ref('hr.group_hr_user'))]"/>
+        <field name="domain_force">[(0, '=', 1)]</field>
+    </record>
+
+    <!-- Employee bypass_ip_check field access -->
+    <record id="employee_bypass_ip_check_modify_rule" model="ir.rule">
+        <field name="name">Employee Bypass IP Check Modification</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('hr.group_hr_manager'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>
+

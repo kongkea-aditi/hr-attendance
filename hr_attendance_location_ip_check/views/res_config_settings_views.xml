@@ -17,15 +17,6 @@
                             <div class="text-muted">
                                 Enable IP address validation for attendance check-in/check-out
                             </div>
-                            <div class="content-group" attrs="{'invisible': [('ip_check_enabled', '=', False)]}">
-                                <div class="mt16">
-                                    <label for="whitelist_ips" class="o_light_label"/>
-                                    <field name="whitelist_ips" placeholder="e.g. 192.168.1.1, 10.0.0.1"/>
-                                </div>
-                                <div class="text-muted">
-                                    Enter comma-separated IP addresses permitted for check-in/check-out
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -33,3 +24,5 @@
         </field>
     </record>
 </odoo>
+
+

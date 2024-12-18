@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+hr_work_location_cidr_manager,hr.work.location.cidr.manager,model_hr_work_location_cidr,hr.group_hr_manager,1,1,1,1
+hr_work_location_cidr_user,hr.work.location.cidr.user,model_hr_work_location_cidr,hr.group_hr_user,0,0,0,0
