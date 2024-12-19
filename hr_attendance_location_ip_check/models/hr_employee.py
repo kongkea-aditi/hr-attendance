@@ -19,42 +19,22 @@ class HrEmployee(models.Model):
         groups="hr.group_hr_user",
     )
 
-    @api.model
-    def fields_get(self, allfields=None, attributes=None):
-        res = super().fields_get(allfields, attributes)
-        if not self.env.user.has_group("hr.group_hr_manager"):
-            if "bypass_ip_check" in res:
-                res["bypass_ip_check"]["readonly"] = True
-        return res
+    def _attendance_action_check(self, action_type):
+        """Hook method for attendance IP validation.
+        Called from hr.attendance during create/write operations.
 
-    def write(self, vals):
-        if "bypass_ip_check" in vals and not self.env.user.has_group(
-            "hr.group_hr_manager"
-        ):
-            raise AccessError(
-                _("Only HR Managers can modify the IP check bypass setting.")
-            )
-        return super().write(vals)
-
-    def attendance_manual(self, next_action, entered_pin=None):
-        """Validate IP before processing manual attendance."""
+        Args:
+            action_type: String indicating 'check_in' or 'check_out'
+        Returns:
+            True if validation passes
+        Raises:
+            ValidationError if IP check fails
+        """
         self.ensure_one()
-        action_type = (
-            "check_out" if self.attendance_state == "checked_in" else "check_in"
-        )
-        self._validate_ip_address(action_type)
-        return super().attendance_manual(next_action, entered_pin)
 
-    def _get_ip_check_enabled(self):
-        """Get global IP check setting."""
-        return const_eval(
-            self.env["ir.config_parameter"]
-            .sudo()
-            .get_param("hr_attendance.ip_check_enabled", "False")
-        )
+        if not self._is_ip_check_required():
+            return True
 
-    def _validate_ip_address(self, action_type):
-        """Validate current IP for attendance actions."""
         remote_ip = self._get_remote_ip()
         if not remote_ip:
             raise ValidationError(
@@ -67,14 +47,22 @@ class HrEmployee(models.Model):
                 _("IP %(ip)s not allowed for %(action)s")
                 % {"ip": remote_ip, "action": action_type}
             )
+        return True
+
+    def _get_ip_check_enabled(self):
+        """Get global IP check setting."""
+        return const_eval(
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("hr_attendance.ip_check_enabled", "False")
+        )
 
     def _is_ip_check_required(self):
-        """Determine if IP check is required for this employee"""
+        """Determine if IP check is required for this employee."""
         self.ensure_one()
 
         # Check if global IP check is enabled
-        global_check = self._get_ip_check_enabled()
-        if not global_check:
+        if not self._get_ip_check_enabled():
             return False
 
         # Employee bypass takes precedence
@@ -89,12 +77,9 @@ class HrEmployee(models.Model):
         return self.work_location_id.check_ip
 
     def _is_ip_allowed(self, ip_addr):
-        """Check if IP is allowed for this employee"""
-        if not self._is_ip_check_required():
-            return True
-
+        """Check if IP is allowed for this employee."""
         if not ip_addr:
-            raise ValidationError(_("No IP address detected"))
+            return False
 
         try:
             ip = ipaddress.ip_address(ip_addr)
@@ -135,4 +120,23 @@ class HrEmployee(models.Model):
             return request.httprequest.remote_addr if request else None
         except Exception as e:
             _logger.error("Error getting IP: %s", str(e))
-            raise ValidationError(_("Unable to determine IP address")) from e
+            return None
+
+    @api.model
+    def fields_get(self, allfields=None, attributes=None):
+        """Restrict bypass_ip_check field modification."""
+        res = super().fields_get(allfields, attributes)
+        if not self.env.user.has_group("hr.group_hr_manager"):
+            if "bypass_ip_check" in res:
+                res["bypass_ip_check"]["readonly"] = True
+        return res
+
+    def write(self, vals):
+        """Restrict bypass_ip_check modification to HR managers."""
+        if "bypass_ip_check" in vals and not self.env.user.has_group(
+            "hr.group_hr_manager"
+        ):
+            raise AccessError(
+                _("Only HR Managers can modify the IP check bypass setting.")
+            )
+        return super().write(vals)

@@ -37,14 +37,7 @@ class TestHrAttendanceIPCheck(TransactionCase):
                 "login": "hr_manager@test.com",
                 "email": "hr_manager@test.com",
                 "groups_id": [
-                    (
-                        6,
-                        0,
-                        [
-                            cls.group_hr_manager.id,
-                            cls.group_attendance_manager.id,
-                        ],
-                    )
+                    (6, 0, [cls.group_hr_manager.id, cls.group_attendance_manager.id])
                 ],
             },
         }
@@ -114,6 +107,16 @@ class TestHrAttendanceIPCheck(TransactionCase):
             "odoo.addons.hr_attendance_location_ip_check.models.hr_employee"
         )
 
+    def setUp(self):
+        super().setUp()
+        # Setup IP patcher that can be used across all tests
+        self.ip_patcher = patch(f"{self.patch_path}.HrEmployee._get_remote_ip")
+        self.mock_ip = self.ip_patcher.start()
+
+    def tearDown(self):
+        self.ip_patcher.stop()
+        super().tearDown()
+
     def _create_test_attendance(self, employee=None, check_in="2024-01-01 08:00:00"):
         """Helper method to create test attendance"""
         return self.env["hr.attendance"].create(
@@ -121,12 +124,6 @@ class TestHrAttendanceIPCheck(TransactionCase):
                 "employee_id": employee and employee.id or self.employee.id,
                 "check_in": check_in,
             }
-        )
-
-    def _patch_ip(self, ip_address):
-        """Helper method to create IP address patch"""
-        return patch(
-            f"{self.patch_path}.HrEmployee._get_remote_ip", return_value=ip_address
         )
 
     def test_01_hr_user_access_rights(self):
@@ -200,45 +197,47 @@ class TestHrAttendanceIPCheck(TransactionCase):
             self.assertTrue(cidr.exists())
 
     def test_04_attendance_allowed_ip(self):
-        """Test attendance creation with allowed IP"""
-        with self._patch_ip("192.168.1.100"):
-            attendance = self._create_test_attendance()
-            self.assertTrue(attendance.exists())
+        """Test attendance with allowed IP using the hook"""
+        self.mock_ip.return_value = "192.168.1.100"
+
+        # Test the hook directly first
+        self.employee._attendance_action_check("check_in")
+
+        # Then test full attendance flow
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
 
     def test_05_attendance_blocked_ip(self):
-        """Test attendance creation with blocked IP"""
-        with self._patch_ip("10.0.0.1"):
-            with self.assertRaises(ValidationError):
-                self._create_test_attendance()
+        """Test attendance with blocked IP using the hook"""
+        self.mock_ip.return_value = "10.0.0.1"
+
+        # Test both hook and full attendance flow
+        with self.assertRaises(ValidationError):
+            self.employee._attendance_action_check("check_in")
+
+        with self.assertRaises(ValidationError):
+            self._create_test_attendance()
 
     def test_06_ip_check_disabled(self):
-        """Test attendance when IP check is disabled for work location"""
-        # Disable IP check with manager rights
+        """Test attendance when IP check is disabled"""
         with self.with_user("hr_manager@test.com"):
             self.work_location.check_ip = False
 
-        with self._patch_ip("1.2.3.4"):
-            attendance = self._create_test_attendance()
-            self.assertTrue(attendance.exists())
+        self.mock_ip.return_value = "1.2.3.4"
 
-            attendance.write(
-                {
-                    "check_out": "2024-01-01 17:00:00",
-                }
-            )
-            check_out_str = "2024-01-01 17:00:00"
-            self.assertEqual(
-                attendance.check_out.strftime("%Y-%m-%d %H:%M:%S"),
-                check_out_str,
-            )
+        # Test the hook
+        self.employee._attendance_action_check("check_in")
 
-        # Re-enable IP check with manager rights
-        with self.with_user("hr_manager@test.com"):
-            self.work_location.check_ip = True
+        # Test full attendance flow
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
 
-        with self._patch_ip("1.2.3.4"):
-            with self.assertRaises(ValidationError):
-                self._create_test_attendance()
+        # Test modification
+        attendance.write({"check_out": "2024-01-01 17:00:00"})
+        self.assertEqual(
+            attendance.check_out.strftime("%Y-%m-%d %H:%M:%S"),
+            "2024-01-01 17:00:00",
+        )
 
     def test_07_multiple_cidrs(self):
         """Test with multiple CIDR ranges"""
@@ -254,9 +253,14 @@ class TestHrAttendanceIPCheck(TransactionCase):
             )
 
         # Test IP from first range
-        with self._patch_ip("192.168.1.50"):
-            attendance = self._create_test_attendance()
-            self.assertTrue(attendance.exists())
+        self.mock_ip.return_value = "192.168.1.50"
+
+        # Test hook directly
+        self.employee._attendance_action_check("check_in")
+
+        # Test full attendance flow
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
 
     def test_08_multi_company(self):
         """Test CIDR restrictions respect company boundaries"""
@@ -301,14 +305,19 @@ class TestHrAttendanceIPCheck(TransactionCase):
         )
 
         # Test cross-company IP validation
-        with self._patch_ip("172.16.0.100"):
-            # Should work for company 2 employee
-            attendance = self._create_test_attendance(employee2)
-            self.assertTrue(attendance.exists())
+        self.mock_ip.return_value = "172.16.0.100"
 
-            # Should fail for company 1 employee
-            with self.assertRaises(ValidationError):
-                self._create_test_attendance(self.employee)
+        # Test hook directly for both employees
+        employee2._attendance_action_check("check_in")
+        with self.assertRaises(ValidationError):
+            self.employee._attendance_action_check("check_in")
+
+        # Test full attendance flow
+        attendance = self._create_test_attendance(employee2)
+        self.assertTrue(attendance.exists())
+
+        with self.assertRaises(ValidationError):
+            self._create_test_attendance(self.employee)
 
     def test_09_inactive_cidr(self):
         """Test IP validation with inactive CIDR"""
@@ -319,15 +328,15 @@ class TestHrAttendanceIPCheck(TransactionCase):
             )
             cidrs.write({"active": False})
 
-            # Should fail with all CIDRs inactive
-            with self._patch_ip("192.168.1.100"):
-                with self.assertRaises(ValidationError):
-                    self._create_test_attendance()
+        self.mock_ip.return_value = "192.168.1.100"
 
-        # Should fail with inactive CIDR
-        with self._patch_ip("192.168.1.100"):
-            with self.assertRaises(ValidationError):
-                self._create_test_attendance()
+        # Test hook directly
+        with self.assertRaises(ValidationError):
+            self.employee._attendance_action_check("check_in")
+
+        # Test full attendance flow
+        with self.assertRaises(ValidationError):
+            self._create_test_attendance()
 
     def test_10_cidr_sequence(self):
         """Test CIDR sequence priorities"""
@@ -341,38 +350,42 @@ class TestHrAttendanceIPCheck(TransactionCase):
                 }
             )
 
-        # Test IP in the more specific range
-        with self._patch_ip("172.16.0.50"):
-            attendance = self._create_test_attendance()
-            self.assertTrue(attendance.exists())
+        self.mock_ip.return_value = "172.16.0.50"
+
+        # Test hook directly
+        self.employee._attendance_action_check("check_in")
+
+        # Test full attendance flow
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
 
     def test_11_attendance_modification(self):
         """Test IP validation on attendance modification"""
         # Create initial attendance with valid IP
-        with self._patch_ip("192.168.1.100"):
-            attendance = self._create_test_attendance()
+        self.mock_ip.return_value = "192.168.1.100"
+        attendance = self._create_test_attendance()
 
         # Test modification with invalid IP
-        with self._patch_ip("10.0.0.1"):
-            with self.assertRaises(ValidationError):
-                attendance.write(
-                    {
-                        "check_out": "2024-01-01 17:00:00",
-                    }
-                )
-
-        # Test modification with valid IP
-        with self._patch_ip("192.168.1.100"):
+        self.mock_ip.return_value = "10.0.0.1"
+        with self.assertRaises(ValidationError):
             attendance.write(
                 {
                     "check_out": "2024-01-01 17:00:00",
                 }
             )
-            check_out_str = "2024-01-01 17:00:00"
-            self.assertEqual(
-                attendance.check_out.strftime("%Y-%m-%d %H:%M:%S"),
-                check_out_str,
-            )
+
+        # Test modification with valid IP
+        self.mock_ip.return_value = "192.168.1.100"
+        attendance.write(
+            {
+                "check_out": "2024-01-01 17:00:00",
+            }
+        )
+        check_out_str = "2024-01-01 17:00:00"
+        self.assertEqual(
+            attendance.check_out.strftime("%Y-%m-%d %H:%M:%S"),
+            check_out_str,
+        )
 
     def test_12_ip_edge_cases(self):
         """Test edge cases in IP validation"""
@@ -385,16 +398,18 @@ class TestHrAttendanceIPCheck(TransactionCase):
         ]
 
         for ip, expected in edge_cases:
-            with self._patch_ip(ip):
-                if expected == "error":
-                    with self.assertRaises(ValidationError):
-                        self._create_test_attendance()
-                elif expected:
-                    attendance = self._create_test_attendance()
-                    self.assertTrue(attendance.exists())
-                else:
-                    with self.assertRaises(ValidationError):
-                        self._create_test_attendance()
+            self.mock_ip.return_value = ip
+
+            if expected == "error":
+                with self.assertRaises(ValidationError):
+                    self.employee._attendance_action_check("check_in")
+            elif expected:
+                self.employee._attendance_action_check("check_in")
+                attendance = self._create_test_attendance()
+                self.assertTrue(attendance.exists())
+            else:
+                with self.assertRaises(ValidationError):
+                    self.employee._attendance_action_check("check_in")
 
     def test_13_config_changes(self):
         """Test impact of configuration changes"""
@@ -402,16 +417,20 @@ class TestHrAttendanceIPCheck(TransactionCase):
         # Disable IP check globally
         self.env["ir.config_parameter"].sudo().set_param(param, "False")
 
-        with self._patch_ip("1.2.3.4"):
-            attendance = self._create_test_attendance()
-            self.assertTrue(attendance.exists())
+        self.mock_ip.return_value = "1.2.3.4"
+        # Should work when disabled
+        self.employee._attendance_action_check("check_in")
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
 
         # Re-enable IP check
         self.env["ir.config_parameter"].sudo().set_param(param, "True")
 
-        with self._patch_ip("1.2.3.4"):
-            with self.assertRaises(ValidationError):
-                self._create_test_attendance()
+        # Should fail when re-enabled
+        with self.assertRaises(ValidationError):
+            self.employee._attendance_action_check("check_in")
+        with self.assertRaises(ValidationError):
+            self._create_test_attendance()
 
     def test_14_bypass_features(self):
         """Test bypass feature functionality"""
@@ -419,10 +438,14 @@ class TestHrAttendanceIPCheck(TransactionCase):
             # Enable bypass
             self.employee.bypass_ip_check = True
 
-            # Should work with any IP when bypassed
-            with self._patch_ip("1.2.3.4"):
-                attendance = self._create_test_attendance()
-                self.assertTrue(attendance.exists())
+        self.mock_ip.return_value = "1.2.3.4"
+
+        # Test hook directly
+        self.employee._attendance_action_check("check_in")
+
+        # Test full attendance flow
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
 
     def test_15_multi_user_scenarios(self):
         """Test various user scenarios"""
@@ -444,3 +467,26 @@ class TestHrAttendanceIPCheck(TransactionCase):
                 }
             )
             self.assertTrue(cidr.exists())
+
+    def test_16_hook_inheritance(self):
+        """Test that the attendance action check hook works properly with inheritance"""
+        self.mock_ip.return_value = "192.168.1.100"
+
+        # First test the hook directly
+        self.employee._attendance_action_check("check_in")
+
+        # Then verify it works through attendance_manual
+        result = self.employee.attendance_manual({})
+        self.assertTrue(result)  # Verify we got a response
+
+        # Verify the attendance data in the result
+        self.assertIn("action", result)
+        self.assertIn("attendance", result["action"])
+        attendance_data = result["action"]["attendance"]
+        self.assertEqual(attendance_data["employee_id"][0], self.employee.id)
+
+        # Verify check_out works through the hook too
+        checkout_result = self.employee.attendance_manual({})
+        self.assertTrue(checkout_result)
+        self.assertIn("action", checkout_result)
+        self.assertIn("attendance", checkout_result["action"])

@@ -14,7 +14,8 @@ class HrAttendance(models.Model):
         for vals in vals_list:
             employee = self.env["hr.employee"].browse(vals.get("employee_id"))
             if employee.work_location_id:
-                self._validate_location_ip(employee)
+                action = "check_in"
+                employee._attendance_action_check(action)
 
         return super().create(vals_list)
 
@@ -24,7 +25,8 @@ class HrAttendance(models.Model):
             for attendance in self:
                 if attendance.employee_id.work_location_id:
                     action = "check_out" if "check_out" in vals else "check_in"
-                    self._validate_location_ip(attendance.employee_id, action)
+                    # Use the hook method
+                    attendance.employee_id._attendance_action_check(action)
         return super().write(vals)
 
     def _validate_location_ip(self, employee, action="check_in"):
