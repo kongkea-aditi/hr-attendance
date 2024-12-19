@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+from odoo import fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests.common import TransactionCase
 
@@ -490,3 +491,132 @@ class TestHrAttendanceIPCheck(TransactionCase):
         self.assertTrue(checkout_result)
         self.assertIn("action", checkout_result)
         self.assertIn("attendance", checkout_result["action"])
+
+    def test_17_attendance_create_edge_cases(self):
+        """Test empty and multiple attendance creation."""
+        result = self.env["hr.attendance"].create([])
+        self.assertEqual(len(result), 0)
+
+        self.mock_ip.return_value = "192.168.1.100"
+        if self.employee.attendance_state == "checked_in":
+            self.employee.attendance_ids.write({"check_out": fields.Datetime.now()})
+
+        vals_list = [
+            {
+                "employee_id": self.employee.id,
+                "check_in": "2024-01-01 08:00:00",
+                "check_out": "2024-01-01 12:00:00",
+            },
+            {
+                "employee_id": self.employee.id,
+                "check_in": "2024-01-01 14:00:00",
+                "check_out": "2024-01-01 17:00:00",
+            },
+        ]
+        attendances = self.env["hr.attendance"].create(vals_list)
+        self.assertEqual(len(attendances), 2)
+
+    def test_18_employee_remote_ip_error(self):
+        """Test error handling in remote IP retrieval."""
+        # Configure the mock to return None
+        self.mock_ip.return_value = None
+
+        # Assert that _get_remote_ip returns None
+        self.assertIsNone(self.employee._get_remote_ip())
+
+        # Test that _attendance_action_check raises ValidationError when IP is None
+        with self.assertRaises(ValidationError) as context:
+            self.employee._attendance_action_check("check_in")
+
+        self.assertIn(
+            "Unable to determine IP address for check_in operation",
+            str(context.exception),
+        )
+
+    def test_19_employee_fields_access(self):
+        """Test field access rights for regular HR user."""
+        test_user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Regular Employee",
+                    "login": "regular.employee@test.com",
+                    "email": "regular.employee@test.com",
+                    "groups_id": [(6, 0, [self.group_hr_user.id])],
+                }
+            )
+        )
+
+        with self.with_user(test_user.login):
+            fields_data = self.employee.fields_get(["bypass_ip_check"])
+            self.assertTrue(fields_data["bypass_ip_check"]["readonly"])
+
+    def test_20_work_location_constraints(self):
+        """Test work location CIDR constraints."""
+        location = self.work_location
+
+        # Deactivate all existing CIDRs for the work location
+        cidrs = (
+            self.env["hr.work.location.cidr"]
+            .sudo()
+            .search([("work_location_id", "=", location.id)])
+        )
+        cidrs.write({"active": False})
+
+        # Set check_ip to False to allow changes without constraints
+        location.sudo().write({"check_ip": False})
+
+        # Attempt to enable IP check without any active CIDRs
+        with self.assertRaises(ValidationError) as context:
+            location.sudo().write({"check_ip": True})
+
+        # Verify that the correct error message is raised
+        self.assertIn(
+            "IP check enabled locations must have at least one active CIDR range.",
+            str(context.exception),
+        )
+
+        # Reactivate all CIDRs and enable IP check
+        cidrs.write({"active": True})
+        location.sudo().write({"check_ip": True})
+        self.env.invalidate_all()  # Refresh the environment to recognize changes
+        self.assertTrue(location.check_ip)
+
+    def test_21_employee_bypass_write_access(self):
+        """Test bypass IP check write access restrictions."""
+        test_user = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Regular Employee 2",
+                    "login": "regular.employee2@test.com",
+                    "email": "regular.employee2@test.com",
+                    "groups_id": [(6, 0, [self.group_hr_user.id])],
+                }
+            )
+        )
+
+        employee = self.employee.with_user(test_user)
+        self.env.invalidate_all()
+
+        with self.assertRaises(AccessError):
+            employee.write({"bypass_ip_check": True})
+
+    def test_22_cidr_validation_errors(self):
+        """Test CIDR format validation."""
+        with self.assertRaises(ValidationError), self.with_user("hr_manager@test.com"):
+            self.env["hr.work.location.cidr"].create(
+                {
+                    "work_location_id": self.work_location.id,
+                    "name": "Invalid Network",
+                    "cidr": "256.256.256.256/24",
+                }
+            )
+
+    def test_23_employee_ip_validation(self):
+        """Test IP validation edge cases."""
+        with patch("ipaddress.ip_address", side_effect=ValueError("Invalid IP")):
+            with self.assertRaises(ValidationError):
+                self.employee._is_ip_allowed("192.168.1.1")
