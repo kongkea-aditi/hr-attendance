@@ -1,8 +1,11 @@
+import logging
 from unittest.mock import patch
 
 from odoo import fields
 from odoo.exceptions import AccessError, ValidationError
 from odoo.tests.common import TransactionCase
+
+_logger = logging.getLogger(__name__)
 
 
 class TestHrAttendanceIPCheck(TransactionCase):
@@ -114,8 +117,19 @@ class TestHrAttendanceIPCheck(TransactionCase):
         self.ip_patcher = patch(f"{self.patch_path}.HrEmployee._get_remote_ip")
         self.mock_ip = self.ip_patcher.start()
 
+        # Create a list to track created CIDR records for cleanup
+        self.created_cidrs = []
+
     def tearDown(self):
-        self.ip_patcher.stop()
+        # Clean up created CIDR records
+        for cidr in self.created_cidrs:
+            if cidr.exists():
+                try:
+                    cidr.sudo().unlink()
+                except Exception as e:
+                    _logger.exception(
+                        "Unexpected error during cleanup of CIDR %s: %s", cidr.id, e
+                    )
         super().tearDown()
 
     def _create_test_attendance(self, employee=None, check_in="2024-01-01 08:00:00"):
@@ -620,3 +634,82 @@ class TestHrAttendanceIPCheck(TransactionCase):
         with patch("ipaddress.ip_address", side_effect=ValueError("Invalid IP")):
             with self.assertRaises(ValidationError):
                 self.employee._is_ip_allowed("192.168.1.1")
+
+    def test_24_no_active_cidr_error(self):
+        """Test error when no active CIDRs are configured."""
+        with self.with_user("hr_manager@test.com"):
+            # Deactivate all existing CIDRs
+            cidrs = self.env["hr.work.location.cidr"].search(
+                [("work_location_id", "=", self.work_location.id)]
+            )
+            cidrs.write({"active": False})
+
+            self.mock_ip.return_value = "192.168.1.100"
+            with self.assertRaises(ValidationError):
+                self.employee._attendance_action_check("check_in")
+
+            # Test creating attendance directly
+            with self.assertRaises(ValidationError):
+                self._create_test_attendance()
+
+            # Reactivate CIDRs
+            cidrs.write({"active": True})
+
+    def test_25_overlapping_cidrs(self):
+        """Test handling of overlapping CIDRs."""
+        with self.with_user("hr_manager@test.com"):
+            # Create a CIDR that overlaps with the one in setUpClass (192.168.1.0/24)
+            with self.assertRaises(ValidationError) as context:
+                cidr = self.env["hr.work.location.cidr"].create(
+                    {
+                        "work_location_id": self.work_location.id,
+                        "name": "Overlapping Network",
+                        "cidr": "192.168.1.128/25",  # Overlaps with 192.168.1.0/24
+                        "sequence": 30,
+                        "active": True,
+                    }
+                )
+                self.created_cidrs.append(cidr)
+
+            self.assertIn("overlaps with existing", str(context.exception))
+
+    def test_26_work_location_ip_check_disabled(self):
+        """Test behavior when IP check is disabled at work location level."""
+        with self.with_user("hr_manager@test.com"):
+            self.work_location.check_ip = False
+        self.mock_ip.return_value = "5.5.5.5"
+        self.employee._attendance_action_check("check_in")
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
+
+    def test_27_no_work_location(self):
+        """Test scenario where employee has no work location."""
+        self.employee.work_location_id = False
+        self.mock_ip.return_value = "5.5.5.5"
+
+        # Test the hook
+        self.employee._attendance_action_check("check_in")
+
+        # Test full attendance flow
+        attendance = self._create_test_attendance()
+        self.assertTrue(attendance.exists())
+
+        # Test modification
+        attendance.write({"check_out": "2024-01-01 17:00:00"})
+        self.assertEqual(
+            attendance.check_out.strftime("%Y-%m-%d %H:%M:%S"), "2024-01-01 17:00:00"
+        )
+
+    def test_28_no_ip_error_message(self):
+        """Test specific error message when IP cannot be determined."""
+        self.mock_ip.return_value = None
+        with self.assertRaises(ValidationError) as context:
+            self.employee._attendance_action_check("check_in")
+        self.assertIn("Unable to determine IP address", str(context.exception))
+
+    def test_29_ip_not_allowed_error_message(self):
+        """Test specific error message when IP is not allowed."""
+        self.mock_ip.return_value = "10.0.0.1"
+        with self.assertRaises(ValidationError) as context:
+            self.employee._attendance_action_check("check_in")
+        self.assertIn("IP 10.0.0.1 not allowed for", str(context.exception))
