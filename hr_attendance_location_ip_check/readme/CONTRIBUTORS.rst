@@ -1,13 +1,20 @@
-Contributors
-============
+Authors
+~~~~~~~
+* ADITI
 
-* Kongkea Ouch <kongkea.ouch@camsolution.biz>
+Contributors
+~~~~~~~~~~~~
+* Kongkea Ouch <kongkea.ouch@aditi.asia>
   - Module design and implementation
   - Test coverage
   - Documentation
 
+Acknowledgments
+~~~~~~~~~~~~~~~
+This module draws inspiration from the CIDR-based validation concepts proposed in `PR #168 <https://github.com/OCA/hr-attendance/pull/168>`_ by `sonhd91 <https://github.com/sonhd91>`. However, this implementation takes a different architectural approach by focusing on **work location-based IP validation**. By linking CIDR ranges directly to work locations, it provides enhanced scalability and flexibility for enterprises with multiple locations or distributed teams.
+
 Maintainers
------------
+~~~~~~~~~~~
 
 .. image:: https://odoo-community.org/logo.png
    :alt: Odoo Community Association

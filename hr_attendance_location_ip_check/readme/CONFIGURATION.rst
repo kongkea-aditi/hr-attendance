@@ -1,94 +1,85 @@
+=============
 Configuration
 =============
 
-System Requirements
-------------------
+Prerequisites
+-------------
 * Odoo 16.0
-* No additional Python packages required
+* Administrator or HR Manager access rights
 
 Global Settings
 ---------------
-1. Enable IP-based attendance check:
-   * Navigate to Settings -> Human Resources -> Attendance
-   * Locate the "IP Attendance Check" section
-   * Activate "Enable IP-based Attendance Check"
-   * Note: This is a company-wide setting affecting all locations
 
-Work Location Setup
--------------------
-1. Configure locations (requires HR Manager rights):
-   * Go to Settings -> Employees -> Work Locations
-   * Select or create a work location
-   * Enable "IP Check" option where needed
-   * Under "IP Attendance Check" section, add allowed IP ranges:
-     * Set a descriptive name (e.g., "Office Network")
-     * Define CIDR range (e.g., "192.168.1.0/24")
-     * Arrange priority using sequence handle (lower numbers = higher priority)
-     * Set active/inactive status as needed
+IP Check Activation
+~~~~~~~~~~~~~~~~~~~
+1. Navigate to Settings -> Human Resources -> Attendance
+2. Locate "IP Attendance Check" section
+3. Enable "IP-based Attendance Check"
 
-   Note: When IP Check is enabled for a location, at least one active CIDR range is required.
+Note: This is a company-wide setting affecting all locations.
 
-2. CIDR Configuration Guidelines:
-   * Each CIDR must be unique per work location and company
-   * CIDRs cannot overlap within the same work location
-   * Invalid CIDR formats will be rejected
-   * Use sequence numbers to control evaluation order
-   * Inactive CIDRs are ignored during validation
+Work Location Configuration
+---------------------------
 
-Employee Configuration
-----------------------
-1. Individual Bypass Settings:
-   * Navigate to employee form -> HR Settings -> Attendance/Point of Sale
-   * Enable "Bypass IP Check" option (requires HR Manager access rights)
-   * When enabled, the employee can check in/out from any IP address
-   * Useful for:
-     * Remote workers
-     * Employees working across multiple locations
-     * Special cases requiring IP check exemption
+CIDR Range Setup
+~~~~~~~~~~~~~~~~
+1. Go to Settings -> Employees -> Work Locations
+2. Select or create a work location
+3. Enable "IP Check" option
+4. Under "IP Attendance Check" section:
+   * Add descriptive name (e.g., "Office Network")
+   * Define CIDR range (e.g., "192.168.1.0/24")
+   * Set sequence number for priority
+   * Set active/inactive status
 
-2. Work Location Assignment:
-   * Assign appropriate work location to each employee
-   * IP validation is based on the assigned work location's CIDR ranges
-   * Employees without work location assignment bypass IP validation
+CIDR Configuration Rules
+~~~~~~~~~~~~~~~~~~~~~~~~
+* Each CIDR must be unique per work location and company
+* CIDRs cannot overlap within same work location
+* At least one active CIDR required when IP Check is enabled
+* Use sequence numbers to control evaluation order
 
-Security Configuration
-----------------------
-Access rights are automatically configured but can be reviewed:
+Employee Settings
+-----------------
 
-1. HR Manager Rights:
-   * Full access to CIDR configuration
-   * Can enable/disable IP checks
-   * Can manage employee bypass settings
-   * Can view all validation logs
+Bypass Configuration
+~~~~~~~~~~~~~~~~~~~~
+1. Access employee form -> HR Settings -> Attendance
+2. Enable "Bypass IP Check" option
+3. Requires HR Manager access rights
+4. Allows check in/out from any IP address
 
-2. HR User Rights:
-   * Can view CIDR configurations
-   * Cannot modify IP check settings
-   * Cannot modify bypass settings
-   * Limited to company-specific records
+Use Cases for Bypass:
+* Remote workers
+* Multi-location employees
+* Special exceptions
 
-3. Multi-company Considerations:
-   * CIDR ranges are company-specific
-   * Work locations respect company boundaries
-   * Cross-company access is prevented by security rules
+Work Location Assignment
+~~~~~~~~~~~~~~~~~~~~~~~~
+* Assign appropriate work location to each employee
+* IP validation based on location's CIDR ranges
+* No work location = automatic bypass
 
-Configuration Validation
-------------------------
-The system performs several validations during configuration:
+Security Settings
+-----------------
 
-1. CIDR Validation:
-   * Format checking of IP ranges
-   * Overlap detection between ranges
-   * Uniqueness verification per location
-   * Active status confirmation
+Access Rights
+~~~~~~~~~~~~~
+HR Manager:
+* Full CIDR configuration access
+* IP check management
+* Employee bypass control
+* Validation log access
 
-2. Location Settings:
-   * IP Check enablement status
-   * Presence of active CIDR ranges
-   * Work location assignments
-   * Multi-company boundaries
+HR User:
+* Read-only CIDR access
+* No IP check modifications
+* No bypass management
+* Company-specific records only
 
-3. Employee Settings:
-   * Bypass permission verification
-   * Work location assignment check
-   * Access right validation
+Multi-company Considerations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* CIDR ranges are company-specific
+* Work locations respect company boundaries
+* Cross-company access prevented
+* Separate configuration per company required
