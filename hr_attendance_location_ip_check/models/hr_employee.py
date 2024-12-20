@@ -114,9 +114,16 @@ class HrEmployee(models.Model):
             raise ValidationError(_("Invalid IP address format: %s") % ip_addr) from e
 
     def _get_remote_ip(self):
-        """Get remote IP from request."""
+        """Get remote IP from request, considering proxy headers."""
         try:
-            return request.httprequest.remote_addr if request else None
+            if request:
+                ip = request.httprequest.headers.get(
+                    "X-Forwarded-For", request.httprequest.headers.get("X-Real-IP")
+                )
+                return (
+                    ip.split(",")[0].strip() if ip else request.httprequest.remote_addr
+                )
+            return None
         except Exception as e:
             _logger.error("Error getting IP: %s", str(e))
             return None
