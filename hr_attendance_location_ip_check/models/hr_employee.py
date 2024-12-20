@@ -1,7 +1,7 @@
 import ipaddress
 import logging
 
-from odoo import _, api, fields, models
+from odoo import _, fields, models
 from odoo.exceptions import AccessError, ValidationError
 from odoo.http import request
 from odoo.tools.safe_eval import const_eval
@@ -15,8 +15,7 @@ class HrEmployee(models.Model):
     bypass_ip_check = fields.Boolean(
         string="Bypass IP Check",
         default=False,
-        readonly=True,
-        groups="hr.group_hr_user",
+        groups="hr.group_hr_manager",
     )
 
     def _attendance_action_check(self, action_type):
@@ -121,15 +120,6 @@ class HrEmployee(models.Model):
         except Exception as e:
             _logger.error("Error getting IP: %s", str(e))
             return None
-
-    @api.model
-    def fields_get(self, allfields=None, attributes=None):
-        """Restrict bypass_ip_check field modification."""
-        res = super().fields_get(allfields, attributes)
-        if not self.env.user.has_group("hr.group_hr_manager"):
-            if "bypass_ip_check" in res:
-                res["bypass_ip_check"]["readonly"] = True
-        return res
 
     def write(self, vals):
         """Restrict bypass_ip_check modification to HR managers."""

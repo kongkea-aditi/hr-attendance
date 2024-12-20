@@ -1,7 +1,10 @@
 import ipaddress
+import logging
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class HrWorkLocationCidr(models.Model):
@@ -77,3 +80,19 @@ class HrWorkLocationCidr(models.Model):
                         "error": str(e),
                     }
                 ) from e
+
+    def ip_in_range(self, ip_address):
+        """
+        Checks if a given IP address falls within the network range defined by the CIDR.
+        """
+        try:
+            ip = ipaddress.ip_address(ip_address)
+            network = ipaddress.ip_network(self.cidr)
+            return ip in network
+        except ValueError:
+            _logger.error(
+                "Invalid IP address or CIDR encountered: IP - %s, CIDR - %s",
+                ip_address,
+                self.cidr,
+            )
+            return False

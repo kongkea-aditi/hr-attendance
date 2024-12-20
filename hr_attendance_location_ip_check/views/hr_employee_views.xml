@@ -12,7 +12,7 @@
                 <field
                     name="bypass_ip_check"
                     widget="boolean_toggle"
-                    attrs="{'invisible': [('work_location_id', '=', False)]}"
+                    groups="hr.group_hr_manager"
                     help="When enabled, this employee can check in/out from any IP address regardless of work location settings"
                 />
                 <field name="work_location_id" />

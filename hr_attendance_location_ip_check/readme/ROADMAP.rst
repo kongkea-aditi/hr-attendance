@@ -6,7 +6,7 @@ Current Features
 
 Future Enhancements
 -------------------
-- Improve tests and coverage to ensure robustness and handle more edge cases
+- Consolidate and improve tests to ensure robustness and handle more edge cases
 - Develop a separate module to support multiple work locations per employee
 - Integrate the multiple work locations module with this module for IP validation
 - Ensure modularity for reuse across other HR functionalities
