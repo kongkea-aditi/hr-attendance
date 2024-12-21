@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 from odoo import fields
 from odoo.exceptions import MissingError, ValidationError
 from odoo.tests.common import tagged
@@ -22,12 +20,7 @@ class TestHrAttendanceEdgeCases(CommonAttendanceTest):
             }
         )
 
-    @patch(
-        "odoo.addons.hr_attendance_location_ip_check.models.hr_employee.HrEmployee"
-        "._get_remote_ip",
-        return_value="192.168.1.100",
-    )
-    def test_01_attendance_create_error_handling(self, mock_get_remote_ip):
+    def test_01_attendance_create_error_handling(self):
         """Test IP validation in attendance creation."""
         # Test with non-existent employee - should raise MissingError
         max_id = self.env["hr.employee"].search([], order="id desc", limit=1).id
@@ -37,14 +30,14 @@ class TestHrAttendanceEdgeCases(CommonAttendanceTest):
             )
 
         # Test with invalid IP
-        mock_get_remote_ip.return_value = "10.0.0.1"  # IP outside allowed range
+        self.mock_ip.return_value = "10.0.0.1"  # IP outside allowed range
         with self.assertRaises(ValidationError):
             self.env["hr.attendance"].create(
                 {"employee_id": self.employee.id, "check_in": fields.Datetime.now()}
             )
 
         # Test with valid IP
-        mock_get_remote_ip.return_value = "192.168.1.100"  # IP within allowed range
+        self.mock_ip.return_value = "192.168.1.100"  # IP within allowed range
         attendance = self.env["hr.attendance"].create(
             {"employee_id": self.employee.id, "check_in": fields.Datetime.now()}
         )
@@ -240,3 +233,23 @@ class TestHrAttendanceEdgeCases(CommonAttendanceTest):
         # Cleanup
         attendance.unlink()
         test_employee.unlink()
+
+    def test_10_attendance_create_no_work_location(self):
+        """Test IP validation when no work location assigned"""
+        employee = self.env["hr.employee"].create({"name": "Test Employee No Location"})
+        self.mock_ip.return_value = "192.168.1.100"
+        attendance = self.env["hr.attendance"].create(
+            {
+                "employee_id": employee.id,
+                "check_in": fields.Datetime.now(),
+            }
+        )
+
+        self.assertTrue(attendance.exists())
+
+    def test_11_validate_location_ip_no_remote_ip(self):
+        """Test _validate_location_ip with no remote IP"""
+        self.mock_ip.return_value = None  # Simulate no IP
+        with self.assertRaises(ValidationError) as context:
+            self.env["hr.attendance"]._validate_location_ip(self.employee, "check_in")
+        self.assertIn("Unable to determine IP address", str(context.exception))

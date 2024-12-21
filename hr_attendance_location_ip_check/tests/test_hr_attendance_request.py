@@ -124,3 +124,30 @@ class TestHrAttendanceRequest(CommonAttendanceTest):
 
         # Assert that the employee is now checked out
         self.assertEqual(self.employee.attendance_state, "checked_out")
+
+    def test_07_initial_checkin_state(self):
+        """Test setup with initial checked-in state."""
+        self.mock_ip.return_value = "192.168.1.100"
+        # Create initial attendance to simulate checked-in state
+        initial_attendance = self._create_test_attendance(
+            check_in="2024-01-01 08:00:00"
+        )
+        self.assertEqual(self.employee.attendance_state, "checked_in")
+        # Now run a dummy test to invoke the setUp method with an initial checked_in state
+        self.assertTrue(initial_attendance.exists())
+
+    def test_08_employee_initial_state_handling(self):
+        """Test handling of employee's initial attendance state."""
+        # First create a checked-in state
+        self.mock_ip.return_value = "192.168.1.100"
+        attendance = self.env["hr.attendance"].create(
+            {
+                "employee_id": self.employee.id,
+                "check_in": fields.Datetime.now() - timedelta(hours=2),
+            }
+        )
+        self.assertEqual(self.employee.attendance_state, "checked_in")
+
+        # Then test the checkout process
+        attendance.write({"check_out": fields.Datetime.now() - timedelta(hours=1)})
+        self.assertEqual(self.employee.attendance_state, "checked_out")

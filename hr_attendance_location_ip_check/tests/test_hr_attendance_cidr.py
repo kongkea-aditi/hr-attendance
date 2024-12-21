@@ -170,9 +170,13 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
             self.assertTrue(cidrs[1].exists())
 
     def test_08_is_ip_allowed_no_active_cidrs(self):
-        """Test _is_ip_allowed when no active CIDRs are present."""
+        """Test that ValidationError is raised when no active CIDRs are found."""
         self.work_location.allowed_cidr_ids.write({"active": False})
-        self.assertFalse(self.employee._is_ip_allowed("192.168.1.100"))
+        with self.assertRaises(ValidationError) as context:
+            self.employee._is_ip_allowed("192.168.1.100")
+        self.assertIn(
+            "No active CIDR ranges defined for location", str(context.exception)
+        )
 
     def test_09_cidr_cleanup_error(self):
         """Test error handling during CIDR cleanup."""

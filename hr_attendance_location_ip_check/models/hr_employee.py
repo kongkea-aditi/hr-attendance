@@ -87,27 +87,21 @@ class HrEmployee(models.Model):
             )
 
             if not cidrs:
-                _logger.error(
-                    "No active CIDR ranges for location %s", self.work_location_id.name
+                raise ValidationError(
+                    _("No active CIDR ranges defined for location %s")
+                    % self.work_location_id.name
                 )
-                return False
 
             for cidr in cidrs:
-                try:
-                    if ip in ipaddress.ip_network(cidr.cidr):
-                        _logger.info(
-                            "IP %s matched CIDR %s for location %s",
-                            ip_addr,
-                            cidr.cidr,
-                            self.work_location_id.name,
-                        )
-                        return True
-                except ValueError:
-                    continue
+                if ip in ipaddress.ip_network(cidr.cidr):
+                    _logger.info(
+                        "IP %s matched CIDR %s for location %s",
+                        ip_addr,
+                        cidr.cidr,
+                        self.work_location_id.name,
+                    )
+                    return True
 
-            _logger.error(
-                "IP %s not allowed for location %s", ip_addr, self.work_location_id.name
-            )
             return False
 
         except ValueError as e:
@@ -115,18 +109,25 @@ class HrEmployee(models.Model):
 
     def _get_remote_ip(self):
         """Get remote IP from request, considering proxy headers."""
+        if not request:
+            return None
+
         try:
-            if request:
-                ip = request.httprequest.headers.get(
-                    "X-Forwarded-For", request.httprequest.headers.get("X-Real-IP")
-                )
-                return (
-                    ip.split(",")[0].strip() if ip else request.httprequest.remote_addr
-                )
-            return None
+            ip = request.httprequest.headers.get(
+                "X-Forwarded-For", request.httprequest.headers.get("X-Real-IP")
+            )
         except Exception as e:
-            _logger.error("Error getting IP: %s", str(e))
+            _logger.error("Error getting IP headers: %s", str(e))
             return None
+
+        if ip:
+            return ip.split(",")[0].strip()
+        else:
+            try:
+                return request.httprequest.remote_addr
+            except Exception as e:
+                _logger.error("Error getting remote address: %s", str(e))
+                return None
 
     def write(self, vals):
         """Restrict bypass_ip_check modification to HR managers."""
