@@ -15,7 +15,6 @@
                     groups="hr.group_hr_manager"
                     help="When enabled, this employee can check in/out from any IP address regardless of work location settings"
                 />
-                <field name="work_location_id" />
             </xpath>
         </field>
     </record>
