@@ -15,9 +15,8 @@ class HrAttendance(models.Model):
 
         for vals in vals_list:
             employee = employee_by_id.get(vals.get("employee_id"))
-            if employee and employee.work_location_id:
-                action = "check_in"
-                employee._attendance_action_check(action)
+            action = "check_in"
+            employee._attendance_action_check(action)
 
         return super().create(vals_list)
 
