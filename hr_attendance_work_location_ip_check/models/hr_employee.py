@@ -116,21 +116,18 @@ class HrEmployee(models.Model):
             return None
 
         try:
-            ip = request.httprequest.headers.get(
-                "X-Forwarded-For", request.httprequest.headers.get("X-Real-IP")
-            )
-        except Exception as e:
-            _logger.error("Error getting IP headers: %s", str(e))
-            return None
+            ip = request.httprequest.headers.get("X-Forwarded-For")
+            if ip:
+                return ip.split(",")[0].strip()
 
-        if ip:
-            return ip.split(",")[0].strip()
-        else:
-            try:
-                return request.httprequest.remote_addr
-            except Exception as e:
-                _logger.error("Error getting remote address: %s", str(e))
-                return None
+            ip = request.httprequest.headers.get("X-Real-IP")
+            if ip:
+                return ip.strip()
+
+            return request.httprequest.remote_addr
+        except Exception as e:
+            _logger.error("Error getting remote address: %s", str(e))
+            return None
 
     def write(self, vals):
         """Restrict bypass_ip_check modification to HR managers."""
