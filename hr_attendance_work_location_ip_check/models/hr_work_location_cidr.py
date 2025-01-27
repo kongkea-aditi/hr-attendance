@@ -10,9 +10,7 @@ _logger = logging.getLogger(__name__)
 class HrWorkLocationCidr(models.Model):
     _name = "hr.work.location.cidr"
     _description = "Work Location CIDR Network"
-    _order = "sequence, id"
 
-    sequence = fields.Integer(default=10, index=True)
     work_location_id = fields.Many2one(
         "hr.work.location",
         required=True,
