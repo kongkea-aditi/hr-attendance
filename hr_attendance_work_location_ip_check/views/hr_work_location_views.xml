@@ -11,7 +11,9 @@
                     string="IP Attendance Check"
                     name="ip_check"
                     groups="hr.group_hr_manager"
+                    attrs="{'invisible': [('global_check_ip','=', False)]}"
                 >
+                    <field name="global_check_ip" invisible="1" />
                     <field name="check_ip" />
                     <field
                         name="allowed_cidr_ids"
