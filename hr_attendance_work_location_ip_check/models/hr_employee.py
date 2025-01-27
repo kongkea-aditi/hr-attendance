@@ -86,9 +86,7 @@ class HrEmployee(models.Model):
 
         try:
             ip = ipaddress.ip_address(ip_addr)
-            cidrs = self.work_location_id.allowed_cidr_ids.filtered("active").sorted(
-                "sequence"
-            )
+            cidrs = self.work_location_id.allowed_cidr_ids.filtered("active")
 
             if not cidrs:
                 raise ValidationError(
