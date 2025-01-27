@@ -32,7 +32,7 @@ class HrWorkLocation(models.Model):
             record.global_check_ip = (
                 self.env["ir.config_parameter"]
                 .sudo()
-                .get_param("hr_attendance.ip_check_enabled")
+                .get_param("hr_attendance_work_location_ip_check.ip_check_enabled")
             )
 
     @api.constrains("check_ip", "allowed_cidr_ids")

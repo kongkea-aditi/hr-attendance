@@ -54,7 +54,7 @@ class HrEmployee(models.Model):
         return const_eval(
             self.env["ir.config_parameter"]
             .sudo()
-            .get_param("hr_attendance.ip_check_enabled", "False")
+            .get_param("hr_attendance_work_location_ip_check.ip_check_enabled", "False")
         )
 
     def _is_ip_check_required(self):
