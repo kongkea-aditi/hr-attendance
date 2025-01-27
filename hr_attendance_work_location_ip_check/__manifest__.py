@@ -1,5 +1,5 @@
 {
-    "name": "HR Attendance Location IP Check",
+    "name": "HR Attendance Work Location IP Check",
     "version": "16.0.1.0.0",
     "category": "Human Resources/Attendances",
     "summary": "IP check for attendance check-in/out linked to work location CIDR ranges.",
