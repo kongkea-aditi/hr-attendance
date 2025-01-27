@@ -8,9 +8,14 @@ class HrAttendance(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         """Validate IP before creating attendance records."""
+        employees = self.env["hr.employee"].browse(
+            [vals.get("employee_id") for vals in vals_list]
+        )
+        employee_by_id = {employee.id: employee for employee in employees}
+
         for vals in vals_list:
-            employee = self.env["hr.employee"].browse(vals.get("employee_id"))
-            if employee.work_location_id:
+            employee = employee_by_id.get(vals.get("employee_id"))
+            if employee and employee.work_location_id:
                 action = "check_in"
                 employee._attendance_action_check(action)
 
