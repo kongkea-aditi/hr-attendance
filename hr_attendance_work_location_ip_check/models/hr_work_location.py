@@ -43,15 +43,3 @@ class HrWorkLocation(models.Model):
                         "IP check enabled locations must have at least one active CIDR range."
                     )
                 )
-
-    def check_ip_allowed(self, ip_addr):
-        """Check if IP is allowed for this location."""
-        self.ensure_one()
-        if not self.check_ip:
-            return True
-
-        cidrs = self.allowed_cidr_ids.filtered("active")
-        if not cidrs:
-            return False
-
-        return any(cidr.ip_in_range(ip_addr) for cidr in cidrs)
