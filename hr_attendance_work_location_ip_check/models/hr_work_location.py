@@ -2,7 +2,6 @@ import logging
 
 from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
-from odoo.tools.safe_eval import const_eval
 
 _logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class HrWorkLocation(models.Model):
     def check_ip_allowed(self, ip_addr):
         """Check if IP is allowed for this location."""
         self.ensure_one()
-        if not const_eval(str(self.check_ip)):
+        if not self.check_ip:
             return True
 
         cidrs = self.allowed_cidr_ids.filtered("active")
