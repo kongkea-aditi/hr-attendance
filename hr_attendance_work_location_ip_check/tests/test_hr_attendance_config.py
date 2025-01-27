@@ -27,7 +27,7 @@ class TestHrAttendanceConfig(CommonAttendanceTest):
 
     def test_02_config_changes(self):
         """Test impact of configuration changes"""
-        param = "hr_attendance.ip_check_enabled"
+        param = "hr_attendance_work_location_ip_check.ip_check_enabled"
         # Disable IP check globally
         self.env["ir.config_parameter"].sudo().set_param(param, "False")
 
@@ -99,14 +99,14 @@ class TestHrAttendanceConfig(CommonAttendanceTest):
         """Test global IP check configuration."""
         # Test when disabled globally
         self.env["ir.config_parameter"].sudo().set_param(
-            "hr_attendance.ip_check_enabled", "False"
+            "hr_attendance_work_location_ip_check.ip_check_enabled", "False"
         )
         result = self.employee._get_ip_check_enabled()
         self.assertFalse(result)
 
         # Test when enabled globally
         self.env["ir.config_parameter"].sudo().set_param(
-            "hr_attendance.ip_check_enabled", "True"
+            "hr_attendance_work_location_ip_check.ip_check_enabled", "True"
         )
         result = self.employee._get_ip_check_enabled()
         self.assertTrue(result)
@@ -164,7 +164,7 @@ class TestHrAttendanceConfig(CommonAttendanceTest):
     def test_09_ip_check_required_global_disabled(self):
         """Test _is_ip_check_required when global IP check is off."""
         self.env["ir.config_parameter"].sudo().set_param(
-            "hr_attendance.ip_check_enabled", "False"
+            "hr_attendance_work_location_ip_check.ip_check_enabled", "False"
         )
         self.assertFalse(self.employee._is_ip_check_required())
 

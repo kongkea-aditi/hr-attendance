@@ -176,7 +176,7 @@ class TestHrAttendanceEdgeCases(CommonAttendanceTest):
         """Test IP check bypass functionality."""
         # First ensure IP check is enabled
         self.env["ir.config_parameter"].sudo().set_param(
-            "hr_attendance.ip_check_enabled", "True"
+            "hr_attendance_work_location_ip_check.ip_check_enabled", "True"
         )
 
         # Enable bypass for employee using HR manager

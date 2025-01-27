@@ -199,7 +199,7 @@ class TestHrAttendanceWorkflow(CommonAttendanceTest):
         with self.with_user("hr_manager@test.com"):
             # Ensure IP check is enabled globally
             self.env["ir.config_parameter"].sudo().set_param(
-                "hr_attendance.ip_check_enabled", "True"
+                "hr_attendance_work_location_ip_check.ip_check_enabled", "True"
             )
 
             # Enable bypass for employee

@@ -100,7 +100,7 @@ class TestHrAttendanceIP(TransactionCase):
         )
 
         # Set up test config parameter
-        param = "hr_attendance.ip_check_enabled"
+        param = "hr_attendance_work_location_ip_check.ip_check_enabled"
         cls.env["ir.config_parameter"].sudo().set_param(param, "True")
 
         # Store common patch path
