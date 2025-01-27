@@ -24,10 +24,8 @@ class HrAttendance(models.Model):
         """Validate IP for check-in/out modifications."""
         if any(field in vals for field in ["check_in", "check_out"]):
             for attendance in self:
-                if attendance.employee_id.work_location_id:
-                    action = "check_out" if "check_out" in vals else "check_in"
-                    # Use the hook method
-                    attendance.employee_id._attendance_action_check(action)
+                action = "check_out" if "check_out" in vals else "check_in"
+                attendance.employee_id._attendance_action_check(action)
         return super().write(vals)
 
     def _validate_location_ip(self, employee, action="check_in"):
