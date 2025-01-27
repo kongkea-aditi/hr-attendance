@@ -30,6 +30,7 @@ class HrEmployee(models.Model):
             ValidationError if IP check fails
         """
         self.ensure_one()
+        action = "Check In" if action_type == "check_in" else "Check Out"
 
         if not self._is_ip_check_required():
             return True
@@ -38,13 +39,13 @@ class HrEmployee(models.Model):
         if not remote_ip:
             raise ValidationError(
                 _("Unable to determine IP address for %(action)s operation")
-                % {"action": action_type}
+                % {"action": action}
             )
 
         if not self._is_ip_allowed(remote_ip):
             raise ValidationError(
                 _("IP %(ip)s not allowed for %(action)s")
-                % {"ip": remote_ip, "action": action_type}
+                % {"ip": remote_ip, "action": action}
             )
         return True
 
