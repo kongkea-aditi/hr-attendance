@@ -105,13 +105,13 @@ class TestHrAttendanceIP(TransactionCase):
 
         # Store common patch path
         cls.patch_path = (
-            "odoo.addons.hr_attendance_location_ip_check.models.hr_employee"
+            "odoo.addons.hr_attendance_work_location_ip_check.models.hr_employee"
         )
 
     def setUp(self):
         super().setUp()
         self.patch_path = (
-            "odoo.addons.hr_attendance_location_ip_check.models.hr_employee"
+            "odoo.addons.hr_attendance_work_location_ip_check.models.hr_employee"
         )
 
     def tearDown(self):
