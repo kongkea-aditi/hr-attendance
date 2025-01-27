@@ -25,12 +25,4 @@
         <field name="groups" eval="[(4, ref('hr.group_hr_user'))]" />
         <field name="domain_force">[(0, '=', 1)]</field>
     </record>
-
-    <!-- Employee bypass_ip_check field access -->
-    <record id="employee_bypass_ip_check_modify_rule" model="ir.rule">
-        <field name="name">Employee Bypass IP Check Modification</field>
-        <field name="model_id" ref="hr.model_hr_employee" />
-        <field name="groups" eval="[(4, ref('hr.group_hr_manager'))]" />
-        <field name="domain_force">[(1, '=', 1)]</field>
-    </record>
 </odoo>
