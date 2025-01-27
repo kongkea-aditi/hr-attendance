@@ -61,20 +61,23 @@ class HrEmployee(models.Model):
         """Determine if IP check is required for this employee."""
         self.ensure_one()
 
-        # Check if global IP check is enabled
-        if not self._get_ip_check_enabled():
+        # No work location means no IP check
+        if not self.work_location_id:
+            return False
+
+        # Check if work location has IP check enabled
+        if not self.work_location_id.check_ip:
             return False
 
         # Employee bypass takes precedence
         if self.bypass_ip_check:
             return False
 
-        # No work location means no IP check
-        if not self.work_location_id:
+        # Check if global IP check is enabled
+        if not self._get_ip_check_enabled():
             return False
 
-        # Check if work location has IP check enabled
-        return self.work_location_id.check_ip
+        return True
 
     def _is_ip_allowed(self, ip_addr):
         """Check if IP is allowed for this employee."""
