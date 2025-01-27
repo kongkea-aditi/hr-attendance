@@ -107,7 +107,8 @@ class HrEmployee(models.Model):
             return False
 
         except ValueError as e:
-            raise ValidationError(_("Invalid IP address format: %s") % ip_addr) from e
+            _logger.error("Invalid IP address format: %s. Error: %s", ip_addr, e)
+            return False
 
     def _get_remote_ip(self):
         """Get remote IP from request, considering proxy headers."""
