@@ -1,5 +1,4 @@
-from odoo import _, api, models
-from odoo.exceptions import ValidationError
+from odoo import api, models
 
 
 class HrAttendance(models.Model):
@@ -27,21 +26,3 @@ class HrAttendance(models.Model):
                 action = "check_out" if "check_out" in vals else "check_in"
                 attendance.employee_id._attendance_action_check(action)
         return super().write(vals)
-
-    def _validate_location_ip(self, employee, action="check_in"):
-        """Validate if IP is allowed for work location."""
-        if not employee.work_location_id.check_ip:
-            return True
-
-        remote_ip = employee._get_remote_ip()
-        if not remote_ip:
-            raise ValidationError(_("Unable to determine IP address"))
-
-        if not employee._is_ip_allowed(remote_ip):
-            raise ValidationError(
-                _("IP %(ip)s not allowed for %(location)s")
-                % {
-                    "ip": remote_ip,
-                    "location": employee.work_location_id.name,
-                }
-            )
