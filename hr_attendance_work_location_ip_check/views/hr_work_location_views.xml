@@ -21,7 +21,6 @@
                         context="{'default_work_location_id': active_id}"
                     >
                         <tree editable="bottom">
-                            <field name="sequence" widget="handle" />
                             <field name="name" placeholder="e.g. Office Network" />
                             <field name="cidr" placeholder="e.g. 192.168.1.0/24" />
                             <field name="active" />

@@ -79,7 +79,6 @@ class CommonAttendanceTest(TransactionCase):
                 "work_location_id": cls.work_location.id,
                 "name": "Office Network",
                 "cidr": "192.168.1.0/24",
-                "sequence": 10,
                 "company_id": cls.env.company.id,
             }
         )

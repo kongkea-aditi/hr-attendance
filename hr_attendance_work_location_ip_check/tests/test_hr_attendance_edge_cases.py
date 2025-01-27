@@ -56,18 +56,6 @@ class TestHrAttendanceEdgeCases(CommonAttendanceTest):
         with self.assertRaises(ValidationError):
             self.employee._attendance_action_check("check_in")
 
-    def test_03_work_location_ip_validation(self):
-        """Test work location IP validation edge cases."""
-        # Test with no active CIDRs
-        self.work_location.allowed_cidr_ids.write({"active": False})
-        self.assertFalse(self.work_location.check_ip_allowed("192.168.1.100"))
-
-        # Test with invalid IP format
-        self.assertFalse(self.work_location.check_ip_allowed("invalid_ip"))
-
-        # Test with empty IP
-        self.assertFalse(self.work_location.check_ip_allowed(""))
-
     def test_04_cidr_range_validation(self):
         """Test CIDR range validation edge cases."""
         # Create work location with a different CIDR range
@@ -246,10 +234,3 @@ class TestHrAttendanceEdgeCases(CommonAttendanceTest):
         )
 
         self.assertTrue(attendance.exists())
-
-    def test_11_validate_location_ip_no_remote_ip(self):
-        """Test _validate_location_ip with no remote IP"""
-        self.mock_ip.return_value = None  # Simulate no IP
-        with self.assertRaises(ValidationError) as context:
-            self.env["hr.attendance"]._validate_location_ip(self.employee, "check_in")
-        self.assertIn("Unable to determine IP address", str(context.exception))

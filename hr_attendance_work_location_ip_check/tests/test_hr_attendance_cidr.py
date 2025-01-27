@@ -32,7 +32,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                     "work_location_id": self.work_location.id,
                     "name": "Primary Network",
                     "cidr": "10.0.0.0/8",
-                    "sequence": 20,
                 }
             )
             self.created_cidrs.append(cidr)
@@ -47,7 +46,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                     "work_location_id": self.work_location.id,
                     "name": "Secondary Network",
                     "cidr": "10.0.0.0/8",
-                    "sequence": 20,
                 }
             )
             self.created_cidrs.append(cidr)
@@ -83,7 +81,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                     "work_location_id": location2.id,
                     "name": "Company 2 Network",
                     "cidr": "172.16.0.0/12",
-                    "sequence": 10,
                     "company_id": company2.id,
                 }
             )
@@ -123,7 +120,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                     "work_location_id": self.work_location.id,
                     "name": "Specific Network",
                     "cidr": "172.16.0.0/24",
-                    "sequence": 5,  # Higher priority than existing
                 }
             )
             self.created_cidrs.append(cidr)
@@ -142,7 +138,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                         "work_location_id": self.work_location.id,
                         "name": "Overlapping Network",
                         "cidr": "192.168.1.128/25",  # Overlaps with 192.168.1.0/24
-                        "sequence": 30,
                         "active": True,
                     }
                 )
@@ -158,7 +153,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                         "work_location_id": self.work_location.id,
                         "name": f"Test CIDR {i}",
                         "cidr": f"172.16.{i}.0/24",
-                        "sequence": i,
                     }
                 )
                 cidrs.append(cidr)
@@ -192,7 +186,6 @@ class TestHrAttendanceCIDR(CommonAttendanceTest):
                     "work_location_id": self.work_location.id,
                     "name": "Test CIDR",
                     "cidr": "192.168.100.0/24",
-                    "sequence": 30,
                     "company_id": self.env.company.id,
                 }
             )

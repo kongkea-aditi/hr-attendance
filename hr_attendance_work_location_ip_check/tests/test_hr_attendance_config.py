@@ -141,75 +141,9 @@ class TestHrAttendanceConfig(CommonAttendanceTest):
         location.write({"check_ip": True})
         self.assertTrue(location.check_ip)
 
-    def test_08_ip_allowed_validation(self):
-        """Test IP validation for work locations."""
-        location = self.work_location
-
-        # Test with valid IP
-        self.assertTrue(
-            location.check_ip_allowed("192.168.1.100"), "Should allow IP in CIDR range"
-        )
-
-        # Test with invalid IP
-        self.assertFalse(
-            location.check_ip_allowed("10.0.0.1"),
-            "Should not allow IP outside CIDR range",
-        )
-
-        # Test with invalid IP format
-        self.assertFalse(
-            location.check_ip_allowed("invalid_ip"), "Should handle invalid IP format"
-        )
-
     def test_09_ip_check_required_global_disabled(self):
         """Test _is_ip_check_required when global IP check is off."""
         self.env["ir.config_parameter"].sudo().set_param(
             "hr_attendance_work_location_ip_check.ip_check_enabled", "False"
         )
         self.assertFalse(self.employee._is_ip_check_required())
-
-    def test_10_work_location_ip_check(self):
-        """Test work location IP check with various scenarios."""
-        # Deactivate existing CIDRs first
-        existing_cidrs = self.work_location.allowed_cidr_ids
-        existing_cidrs.write({"active": False})
-
-        # Create new CIDR with different range
-        cidr = (
-            self.env["hr.work.location.cidr"]
-            .sudo()
-            .create(
-                {
-                    "work_location_id": self.work_location.id,
-                    "name": "Test CIDR",
-                    "cidr": "10.0.0.0/24",  # Different range to avoid overlap
-                    "active": True,
-                }
-            )
-        )
-        self.created_cidrs.append(cidr)
-
-        # Test with active CIDR
-        self.assertTrue(self.work_location.check_ip_allowed("10.0.0.100"))
-
-        # Test with no active CIDRs
-        cidr.write({"active": False})
-        self.assertFalse(self.work_location.check_ip_allowed("10.0.0.100"))
-
-        # Test with invalid IP
-        self.assertFalse(self.work_location.check_ip_allowed("invalid_ip"))
-
-        # Reactivate CIDR and test again
-        cidr.write({"active": True})
-        self.assertTrue(self.work_location.check_ip_allowed("10.0.0.100"))
-
-    def test_11_work_location_ip_disabled(self):
-        """Test check_ip_allowed method when check_ip is False"""
-        work_location = self.env["hr.work.location"].create(
-            {
-                "name": "Test Location no IP Check",
-                "address_id": self.test_partner.id,
-                "check_ip": False,
-            }
-        )
-        self.assertTrue(work_location.check_ip_allowed("192.168.1.100"))

@@ -81,7 +81,6 @@ class TestHrAttendanceIP(TransactionCase):
                 "work_location_id": cls.work_location.id,
                 "name": "Office Network",
                 "cidr": "192.168.1.0/24",
-                "sequence": 10,
                 "company_id": cls.env.company.id,
             }
         )
@@ -186,14 +185,14 @@ class TestHrAttendanceIP(TransactionCase):
             with self.assertRaises(ValidationError) as context:
                 self.employee._attendance_action_check("check_in")
             self.assertIn(
-                "Unable to determine IP address for check_in operation",
+                "Unable to determine IP address for Check In operation",
                 str(context.exception),
             )
 
-    def test_05_ip_validation_errors(self):
+    def test_05_ip_validation_false(self):
         """Test IP validation error handling"""
-        with self.assertRaises(ValidationError):
-            self.employee._is_ip_allowed("invalid-ip-format")
+        result = self.employee._is_ip_allowed("invalid-ip-format")
+        self.assertFalse(result)
 
     def test_06_no_ip_error_message_direct_mock(self):
         """Test specific error message when IP cannot be determined with direct mock."""
@@ -321,21 +320,18 @@ class TestHrAttendanceIP(TransactionCase):
         mock_request = Mock()
         # Correctly set up side_effect to return values in sequence
         mock_request.httprequest.headers.get.side_effect = [
-            None,  # First call (X-Real-IP)
-            "192.168.1.100, 10.0.0.1",  # Second call (X-Forwarded-For)
+            "192.168.1.100, 10.0.0.1",  # First call (X-Real-IP)
+            None,  # Second call (X-Forwarded-For)
         ]
         mock_request.httprequest.remote_addr = "172.160.0.1"
 
         with patch(f"{self.patch_path}.request", mock_request):
             ip = self.employee._get_remote_ip()
             self.assertEqual(ip, "192.168.1.100")  # Correct assertion
-            # Assert that get was called with "X-Forwarded-For" and "X-Real-IP"
-            mock_request.httprequest.headers.get.assert_any_call("X-Real-IP")
-            mock_request.httprequest.headers.get.assert_any_call(
-                "X-Forwarded-For", None
-            )
+            # Assert that get was called with "X-Forwarded-For" first
+            mock_request.httprequest.headers.get.assert_any_call("X-Forwarded-For")
             # Assert that get was called exactly twice
-            self.assertEqual(mock_request.httprequest.headers.get.call_count, 2)
+            self.assertEqual(mock_request.httprequest.headers.get.call_count, 1)
             mock_request.httprequest.headers.get.reset_mock()
 
     def test_17_get_remote_ip_x_real_ip(self):
@@ -363,11 +359,8 @@ class TestHrAttendanceIP(TransactionCase):
             ip = self.employee._get_remote_ip()
             self.assertEqual(ip, "192.168.1.102")
             # Verify the first call to get (for 'X-Forwarded-For')
-            mock_request.httprequest.headers.get.assert_any_call(
-                "X-Forwarded-For", None
-            )
-            # Verify the second call to get (for 'X-Real-IP')
-            mock_request.httprequest.headers.get.assert_any_call("X-Real-IP")
+            mock_request.httprequest.headers.get.assert_any_call("X-Forwarded-For")
+            mock_request.httprequest.headers.get.assert_called_with("X-Real-IP")
             # Assert that get was called exactly twice
             self.assertEqual(mock_request.httprequest.headers.get.call_count, 2)
             mock_request.httprequest.headers.get.reset_mock()

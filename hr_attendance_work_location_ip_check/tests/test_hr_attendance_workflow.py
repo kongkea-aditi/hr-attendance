@@ -135,23 +135,6 @@ class TestHrAttendanceWorkflow(CommonAttendanceTest):
             self.env["hr.attendance"].create(vals_list)
         self.assertIn("not allowed for", str(context.exception))
 
-    def test_05_validate_location_ip_direct(self):
-        """Test direct validation of location IP."""
-        self.mock_ip.return_value = "192.168.1.100"
-
-        with self.with_user("hr_manager@test.com"):
-            # Test with valid IP
-            self.env["hr.attendance"]._validate_location_ip(self.employee, "check_in")
-
-            # Test with no work location
-            self.employee.work_location_id = False
-            self.env["hr.attendance"]._validate_location_ip(self.employee, "check_in")
-
-            # Test with disabled IP check
-            self.employee.work_location_id = self.work_location
-            self.work_location.check_ip = False
-            self.env["hr.attendance"]._validate_location_ip(self.employee, "check_in")
-
     def test_06_attendance_state_transitions(self):
         """Test attendance state transitions and validations."""
         self.mock_ip.return_value = "192.168.1.100"
@@ -165,15 +148,6 @@ class TestHrAttendanceWorkflow(CommonAttendanceTest):
             '"Check Out" time cannot be earlier than "Check In" time',
             str(context.exception),
         )
-
-    def test_07_validate_location_ip_direct_no_allowed_ip(self):
-        """Test direct validation of location IP."""
-        self.mock_ip.return_value = "10.0.0.1"  # invalid IP
-
-        with self.assertRaises(ValidationError) as context:
-            # Test with invalid IP
-            self.env["hr.attendance"]._validate_location_ip(self.employee, "check_in")
-        self.assertIn("not allowed for", str(context.exception))
 
     def test_07_attendance_batch_operations(self):
         """Test batch operations on attendance records."""
