@@ -6,7 +6,7 @@
     "author": "Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/hr-attendance",
     "license": "AGPL-3",
-    "depends": ["hr_attendance", "hr"],
+    "depends": ["hr_attendance"],
     "data": [
         "security/ir.model.access.csv",
         "security/security.xml",
